@@ -67,7 +67,13 @@ export default function StockSim() {
     responsive: true,
     plugins: { legend: { display: false } },
     scales: {
-      y: { ticks: { callback: function(value: string | number) { const v = Number(value); return "¥" + v.toLocaleString() } },
+      y: {
+        ticks: {
+          callback: function(value: string | number) {
+            return "¥" + Number(value).toLocaleString();
+          }
+        }
+      }
     },
   };
 
@@ -99,7 +105,7 @@ export default function StockSim() {
             {stocks.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
-        <Line data={chartData} options={chartOptions as any} />
+        <Line data={chartData} options={chartOptions} />
       </div>
       {message && <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded-xl mb-4">{message}</div>}
       <div className="grid grid-cols-1 gap-4">

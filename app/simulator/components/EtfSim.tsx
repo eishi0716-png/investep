@@ -65,7 +65,13 @@ export default function EtfSim() {
     responsive: true,
     plugins: { legend: { display: false } },
     scales: {
-      y: { ticks: { callback: (v: number) => "¥" + v.toLocaleString() } },
+      y: {
+        ticks: {
+          callback: function(value: string | number) {
+            return "¥" + Number(value).toLocaleString();
+          }
+        }
+      }
     },
   };
 
@@ -97,7 +103,7 @@ export default function EtfSim() {
             {etfs.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         </div>
-        <Line data={chartData} options={chartOptions as any} />
+        <Line data={chartData} options={chartOptions} />
       </div>
       {message && <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded-xl mb-4">{message}</div>}
       <div className="grid grid-cols-1 gap-4">

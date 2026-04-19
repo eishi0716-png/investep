@@ -108,7 +108,13 @@ export default function FxSim() {
     responsive: true,
     plugins: { legend: { display: false } },
     scales: {
-      y: { ticks: { callback: (v: number) => v.toFixed(selectedPair.id === "KRWJPY" ? 4 : 2) + "円" } },
+      y: {
+        ticks: {
+          callback: function(value: string | number) {
+            return Number(value).toFixed(selectedPair.id === "KRWJPY" ? 4 : 2) + "円";
+          }
+        }
+      }
     },
   };
 
@@ -138,7 +144,7 @@ export default function FxSim() {
             {PAIRS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
         </div>
-        <Line data={chartData} options={chartOptions as any} />
+        <Line data={chartData} options={chartOptions} />
       </div>
       {message && <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded-xl mb-4">{message}</div>}
       {loading ? (
