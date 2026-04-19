@@ -67,7 +67,7 @@ export default function StockSim() {
     responsive: true,
     plugins: { legend: { display: false } },
     scales: {
-      y: { ticks: { callback: (v: number) => "¥" + v.toLocaleString() } },
+      y: { ticks: { callback: function(value: string | number) { const v = Number(value); return "¥" + v.toLocaleString() } },
     },
   };
 

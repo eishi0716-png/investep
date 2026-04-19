@@ -51,7 +51,6 @@ export default function FundSim() {
         borderColor: "#9ca3af",
         backgroundColor: "rgba(156,163,175,0.05)",
         borderWidth: 2,
-        borderDash: [5, 5],
         tension: 0,
         fill: false,
         pointRadius: 0,
@@ -63,7 +62,13 @@ export default function FundSim() {
     responsive: true,
     plugins: { legend: { position: "top" as const } },
     scales: {
-      y: { ticks: { callback: (v: number) => "¥" + Math.round(v / 10000) + "万" } },
+      y: {
+        ticks: {
+          callback: function(value: string | number) {
+            return "¥" + Math.round(Number(value) / 10000) + "万";
+          }
+        }
+      }
     },
   };
 
