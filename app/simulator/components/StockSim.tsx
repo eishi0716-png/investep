@@ -86,37 +86,23 @@ function CandlestickChart({ data, name }: { data: typeof stocks[0]["history"]; n
   const range = maxVal - minVal || 1;
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
-
   const toY = (v: number) => PAD.top + chartH - ((v - minVal) / range) * chartH;
   const candleW = Math.floor(chartW / data.length) - 6;
   const spacing = chartW / data.length;
-
   const yTicks = 5;
   const tickValues = Array.from({ length: yTicks }, (_, i) =>
     Math.round(minVal + (range / (yTicks - 1)) * i)
   );
-
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: "#111827", borderRadius: 12 }}>
-      {/* グリッド線 */}
       {tickValues.map((v, i) => (
         <g key={i}>
-          <line
-            x1={PAD.left} y1={toY(v)}
-            x2={W - PAD.right} y2={toY(v)}
-            stroke="#374151" strokeWidth="0.5" strokeDasharray="4 4"
-          />
-          <text
-            x={PAD.left - 6} y={toY(v)}
-            textAnchor="end" dominantBaseline="central"
-            fill="#9CA3AF" fontSize="10"
-          >
+          <line x1={PAD.left} y1={toY(v)} x2={W - PAD.right} y2={toY(v)} stroke="#374151" strokeWidth="0.5" strokeDasharray="4 4" />
+          <text x={PAD.left - 6} y={toY(v)} textAnchor="end" dominantBaseline="central" fill="#9CA3AF" fontSize="10">
             {v >= 10000 ? (v / 1000).toFixed(0) + "k" : v.toLocaleString()}
           </text>
         </g>
       ))}
-
-      {/* ローソク足 */}
       {data.map((d, i) => {
         const x = PAD.left + spacing * i + spacing / 2;
         const isUp = d.close >= d.open;
@@ -124,41 +110,103 @@ function CandlestickChart({ data, name }: { data: typeof stocks[0]["history"]; n
         const bodyTop = toY(Math.max(d.open, d.close));
         const bodyBot = toY(Math.min(d.open, d.close));
         const bodyH = Math.max(bodyBot - bodyTop, 1);
-
         return (
           <g key={i}>
-            {/* 髭（上） */}
             <line x1={x} y1={toY(d.high)} x2={x} y2={bodyTop} stroke={color} strokeWidth="1.5" />
-            {/* 髭（下） */}
             <line x1={x} y1={bodyBot} x2={x} y2={toY(d.low)} stroke={color} strokeWidth="1.5" />
-            {/* ボディ */}
-            <rect
-              x={x - candleW / 2} y={bodyTop}
-              width={candleW} height={bodyH}
-              fill={isUp ? color : color}
-              stroke={color} strokeWidth="1"
-              opacity={isUp ? 1 : 0.85}
-            />
+            <rect x={x - candleW / 2} y={bodyTop} width={candleW} height={bodyH} fill={color} stroke={color} strokeWidth="1" opacity={isUp ? 1 : 0.85} />
           </g>
         );
       })}
-
-      {/* X軸ラベル */}
       {LABELS.map((label, i) => (
-        <text
-          key={i}
-          x={PAD.left + spacing * i + spacing / 2}
-          y={H - 8}
-          textAnchor="middle"
-          fill="#6B7280" fontSize="10"
-        >
-          {label}
-        </text>
+        <text key={i} x={PAD.left + spacing * i + spacing / 2} y={H - 8} textAnchor="middle" fill="#6B7280" fontSize="10">{label}</text>
       ))}
-
-      {/* 銘柄名 */}
       <text x={PAD.left} y={14} fill="#E5E7EB" fontSize="11" fontWeight="bold">{name}</text>
     </svg>
+  );
+}
+
+function HowToReadChart({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-gray-900">📊 ローソク足チャートの見方</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+        </div>
+
+        {/* ローソク足の図解 */}
+        <div className="bg-gray-900 rounded-2xl p-4 mb-5 flex justify-center gap-12">
+          {/* 陽線 */}
+          <div className="flex flex-col items-center gap-1">
+            <svg width="60" height="120" viewBox="0 0 60 120">
+              <line x1="30" y1="5" x2="30" y2="25" stroke="#22c55e" strokeWidth="2"/>
+              <rect x="15" y="25" width="30" height="50" fill="#22c55e" rx="2"/>
+              <line x1="30" y1="75" x2="30" y2="110" stroke="#22c55e" strokeWidth="2"/>
+              <text x="30" y="8" textAnchor="middle" fill="#22c55e" fontSize="9">高値</text>
+              <text x="52" y="30" textAnchor="start" fill="#9CA3AF" fontSize="8">始値</text>
+              <text x="52" y="72" textAnchor="start" fill="#9CA3AF" fontSize="8">終値</text>
+              <text x="30" y="118" textAnchor="middle" fill="#22c55e" fontSize="9">安値</text>
+            </svg>
+            <span className="text-green-500 text-sm font-bold">陽線（上昇）</span>
+            <span className="text-gray-500 text-xs">終値 ＞ 始値</span>
+          </div>
+          {/* 陰線 */}
+          <div className="flex flex-col items-center gap-1">
+            <svg width="60" height="120" viewBox="0 0 60 120">
+              <line x1="30" y1="5" x2="30" y2="25" stroke="#ef4444" strokeWidth="2"/>
+              <rect x="15" y="25" width="30" height="50" fill="#ef4444" rx="2" opacity="0.85"/>
+              <line x1="30" y1="75" x2="30" y2="110" stroke="#ef4444" strokeWidth="2"/>
+              <text x="30" y="8" textAnchor="middle" fill="#ef4444" fontSize="9">高値</text>
+              <text x="52" y="30" textAnchor="start" fill="#9CA3AF" fontSize="8">始値</text>
+              <text x="52" y="72" textAnchor="start" fill="#9CA3AF" fontSize="8">終値</text>
+              <text x="30" y="118" textAnchor="middle" fill="#ef4444" fontSize="9">安値</text>
+            </svg>
+            <span className="text-red-500 text-sm font-bold">陰線（下落）</span>
+            <span className="text-gray-500 text-xs">終値 ＜ 始値</span>
+          </div>
+        </div>
+
+        {/* 説明リスト */}
+        <div className="space-y-3 mb-5">
+          <div className="flex gap-3 items-start bg-gray-50 rounded-xl p-3">
+            <span className="text-lg">📌</span>
+            <div>
+              <p className="text-sm font-bold text-gray-900">ローソク足とは？</p>
+              <p className="text-xs text-gray-600 mt-0.5">1本のローソクで「始値・高値・安値・終値」の4つの価格を表します。株の動きを一目で把握できます。</p>
+            </div>
+          </div>
+          <div className="flex gap-3 items-start bg-green-50 rounded-xl p-3">
+            <span className="text-lg">🟩</span>
+            <div>
+              <p className="text-sm font-bold text-gray-900">緑（陽線）＝上昇した</p>
+              <p className="text-xs text-gray-600 mt-0.5">その週の終わりの価格が、始まりより高かった＝株価が上がった週です。</p>
+            </div>
+          </div>
+          <div className="flex gap-3 items-start bg-red-50 rounded-xl p-3">
+            <span className="text-lg">🟥</span>
+            <div>
+              <p className="text-sm font-bold text-gray-900">赤（陰線）＝下落した</p>
+              <p className="text-xs text-gray-600 mt-0.5">その週の終わりの価格が、始まりより低かった＝株価が下がった週です。</p>
+            </div>
+          </div>
+          <div className="flex gap-3 items-start bg-gray-50 rounded-xl p-3">
+            <span className="text-lg">📏</span>
+            <div>
+              <p className="text-sm font-bold text-gray-900">ヒゲ（上下の細い線）</p>
+              <p className="text-xs text-gray-600 mt-0.5">上のヒゲ＝その週の最高値、下のヒゲ＝その週の最安値を表しています。</p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+        >
+          わかった！チャートを見る
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -167,6 +215,7 @@ export default function StockSim() {
   const [holdings, setHoldings] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState("");
   const [selectedChart, setSelectedChart] = useState(stocks[0]);
+  const [showGuide, setShowGuide] = useState(false);
 
   const buy = (stock: typeof stocks[0]) => {
     if (cash < stock.price) { setMessage("資金が足りません。"); return; }
@@ -187,9 +236,12 @@ export default function StockSim() {
 
   return (
     <div>
+      {showGuide && <HowToReadChart onClose={() => setShowGuide(false)} />}
+
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 text-sm text-blue-700">
         株式投資とは：個別企業の株を売買して値上がり益や配当金を狙う投資方法です。
       </div>
+
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center">
           <p className="text-xs text-gray-400 mb-1">保有現金</p>
@@ -208,8 +260,16 @@ export default function StockSim() {
       </div>
 
       <div className="rounded-2xl p-6 border border-gray-800 shadow-sm mb-8" style={{background:"#111827"}}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white">株価チャート</h2>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-bold text-white">株価チャート</h2>
+            <button
+              onClick={() => setShowGuide(true)}
+              className="flex items-center gap-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium px-3 py-1.5 rounded-full transition-all border border-blue-500/30"
+            >
+              📖 チャートの見方
+            </button>
+          </div>
           <select
             value={selectedChart.id}
             onChange={(e) => setSelectedChart(stocks.find((s) => s.id === e.target.value) || stocks[0])}
