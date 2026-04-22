@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Candle = { open: number; close: number; high: number; low: number };
 
@@ -15,25 +15,32 @@ function generateCandles(base: number, count: number, volatility: number): Candl
     const open = price;
     const change = (Math.random() - 0.48) * volatility;
     const close = Math.max(open + change, open * 0.9);
-    const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.3 / base);
-    const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.3 / base);
+    const high = Math.max(open, close) * (1 + Math.random() * 0.002);
+    const low = Math.min(open, close) * (1 - Math.random() * 0.002);
     candles.push({
-      open: Math.round(open),
-      close: Math.round(close),
-      high: Math.round(high),
-      low: Math.round(low),
+      open: Math.round(open), close: Math.round(close),
+      high: Math.round(high), low: Math.round(low),
     });
     price = close;
   }
   return candles;
 }
 
-type TimeFrame = "15m" | "1d" | "1w";
+type TimeFrame = "1m" | "15m" | "1d" | "1w";
 
 const TIME_FRAMES: { id: TimeFrame; label: string; count: number; volatility: number; labelFn: (i: number, count: number) => string }[] = [
   {
-    id: "15m", label: "15分足", count: 16, volatility: 0.008,
+    id: "1m", label: "1分足", count: 20, volatility: 0.002,
     labelFn: (i, count) => {
+      if (i === 0) return "-20分";
+      if (i === count - 1) return "現在";
+      if (i % 5 === 0) return `-${count - 1 - i}分`;
+      return "";
+    },
+  },
+  {
+    id: "15m", label: "15分足", count: 16, volatility: 0.006,
+    labelFn: (i) => {
       const labels = ["9:00","9:15","9:30","9:45","10:00","10:15","10:30","10:45","11:00","11:15","11:30","12:30","12:45","13:00","13:15","13:30"];
       return labels[i] || "";
     },
@@ -68,8 +75,7 @@ const stocks = [
   { id: "MSFT", name: "Microsoft", price: 45000, change: -0.4 },
 ];
 
-const W = 640;
-const H = 280;
+const W = 640; const H = 280;
 const PAD = { top: 20, right: 20, bottom: 30, left: 70 };
 
 function CandlestickChart({ data, name, labelFn }: { data: Candle[]; name: string; labelFn: (i: number, count: number) => string }) {
@@ -82,10 +88,7 @@ function CandlestickChart({ data, name, labelFn }: { data: Candle[]; name: strin
   const toY = (v: number) => PAD.top + chartH - ((v - minVal) / range) * chartH;
   const candleW = Math.max(Math.floor(chartW / data.length) - 3, 3);
   const spacing = chartW / data.length;
-  const yTicks = 5;
-  const tickValues = Array.from({ length: yTicks }, (_, i) =>
-    Math.round(minVal + (range / (yTicks - 1)) * i)
-  );
+  const tickValues = Array.from({ length: 5 }, (_, i) => Math.round(minVal + (range / 4) * i));
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: "#111827", borderRadius: 12 }}>
       {tickValues.map((v, i) => (
@@ -114,9 +117,7 @@ function CandlestickChart({ data, name, labelFn }: { data: Candle[]; name: strin
       {data.map((_, i) => {
         const label = labelFn(i, data.length);
         if (!label) return null;
-        return (
-          <text key={i} x={PAD.left + spacing * i + spacing / 2} y={H - 8} textAnchor="middle" fill="#6B7280" fontSize="10">{label}</text>
-        );
+        return <text key={i} x={PAD.left + spacing * i + spacing / 2} y={H - 8} textAnchor="middle" fill="#6B7280" fontSize="10">{label}</text>;
       })}
       <text x={PAD.left} y={14} fill="#E5E7EB" fontSize="11" fontWeight="bold">{name}</text>
     </svg>
@@ -185,7 +186,7 @@ function HowToReadChart({ onClose }: { onClose: () => void }) {
             <span className="text-lg">⏱️</span>
             <div>
               <p className="text-sm font-bold text-gray-900">時間軸について</p>
-              <p className="text-xs text-gray-600 mt-0.5">15分足＝15分ごと、日足＝1日ごと、週足＝1週間ごとの値動きを表します。</p>
+              <p className="text-xs text-gray-600 mt-0.5">1分足・15分足＝短期、日足＝中期、週足＝長期の値動きを表します。</p>
             </div>
           </div>
         </div>
@@ -200,19 +201,42 @@ function HowToReadChart({ onClose }: { onClose: () => void }) {
 export default function StockSim() {
   const [cash, setCash] = useState(1000000);
   const [holdings, setHoldings] = useState<{ [key: string]: number }>({});
+  const [buyPrices, setBuyPrices] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState("");
   const [selectedStockId, setSelectedStockId] = useState(stocks[0].id);
   const [timeFrame, setTimeFrame] = useState<TimeFrame>("1d");
   const [showGuide, setShowGuide] = useState(false);
+  const [chartData, setChartData] = useState<Candle[]>([]);
+  const [pulse, setPulse] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const tf = TIME_FRAMES.find((t) => t.id === timeFrame)!;
+
+  // チャートデータ生成（銘柄・時間軸変更時）
+  useEffect(() => {
+    setChartData(generateCandles(BASE_PRICE[selectedStockId], tf.count, tf.volatility * BASE_PRICE[selectedStockId]));
+  }, [selectedStockId, timeFrame]);
+
+  // 1分足のみ1秒ごとに自動更新
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (timeFrame === "1m") {
+      timerRef.current = setInterval(() => {
+        setChartData(generateCandles(BASE_PRICE[selectedStockId], tf.count, tf.volatility * BASE_PRICE[selectedStockId]));
+        setPulse(true);
+        setTimeout(() => setPulse(false), 400);
+      }, 3000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timeFrame, selectedStockId]);
 
   const selectedStock = stocks.find((s) => s.id === selectedStockId) || stocks[0];
-  const tf = TIME_FRAMES.find((t) => t.id === timeFrame)!;
-  const chartData = generateCandles(BASE_PRICE[selectedStockId], tf.count, tf.volatility * BASE_PRICE[selectedStockId]);
 
   const buy = (stock: typeof stocks[0]) => {
     if (cash < stock.price) { setMessage("資金が足りません。"); return; }
     setCash((c) => c - stock.price);
     setHoldings((h) => ({ ...h, [stock.id]: (h[stock.id] || 0) + 1 }));
+    setBuyPrices((b) => ({ ...b, [stock.id]: stock.price }));
     setMessage(stock.name + "を1株購入しました。");
   };
 
@@ -226,9 +250,42 @@ export default function StockSim() {
   const totalAsset = cash + stocks.reduce((sum, s) => sum + (holdings[s.id] || 0) * s.price, 0);
   const profit = totalAsset - 1000000;
 
+  // 利益が出ている保有銘柄をチェック
+  const profitableHoldings = stocks.filter((s) =>
+    (holdings[s.id] || 0) > 0 &&
+    buyPrices[s.id] &&
+    s.price > buyPrices[s.id]
+  );
+  const hasProfitAlert = profitableHoldings.length > 0;
+
   return (
     <div>
       {showGuide && <HowToReadChart onClose={() => setShowGuide(false)} />}
+
+      {/* 売りどき通知バナー */}
+      {hasProfitAlert && (
+        <div className="mb-6 rounded-2xl border-2 border-green-400 bg-green-50 p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">💰</span>
+            <div className="flex-1">
+              <p className="font-bold text-green-800 text-sm mb-1">📈 売りどきかもしれません！</p>
+              {profitableHoldings.map((s) => {
+                const gainAmount = (s.price - buyPrices[s.id]) * (holdings[s.id] || 0);
+                const gainPct = ((s.price - buyPrices[s.id]) / buyPrices[s.id] * 100).toFixed(1);
+                return (
+                  <div key={s.id} className="text-xs text-green-700 mb-1">
+                    <span className="font-bold">{s.name}</span>
+                    ：購入価格 ¥{buyPrices[s.id].toLocaleString()} → 現在 ¥{s.price.toLocaleString()}
+                    <span className="ml-2 font-bold text-green-600">+¥{gainAmount.toLocaleString()}（+{gainPct}%）</span>
+                    の含み益が出ています！
+                  </div>
+                );
+              })}
+              <p className="text-xs text-green-600 mt-1">利益が出ているうちに売ることも大切な投資判断です。</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 text-sm text-blue-700">
         株式投資とは：個別企業の株を売買して値上がり益や配当金を狙う投資方法です。
@@ -252,7 +309,6 @@ export default function StockSim() {
       </div>
 
       <div className="rounded-2xl p-6 border border-gray-800 shadow-sm mb-8" style={{background:"#111827"}}>
-        {/* チャートヘッダー */}
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-white">株価チャート</h2>
@@ -263,13 +319,20 @@ export default function StockSim() {
               📖 チャートの見方
             </button>
           </div>
-          <select
-            value={selectedStockId}
-            onChange={(e) => setSelectedStockId(e.target.value)}
-            className="border border-gray-600 rounded-lg px-3 py-1 text-sm text-white bg-gray-800"
-          >
-            {stocks.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          <div className="flex items-center gap-2">
+            {timeFrame === "1m" && (
+              <span className={`text-xs px-2 py-1 rounded-full font-bold ${pulse ? "bg-green-400 text-black" : "bg-green-900 text-green-300"} transition-all`}>
+                ● LIVE
+              </span>
+            )}
+            <select
+              value={selectedStockId}
+              onChange={(e) => setSelectedStockId(e.target.value)}
+              className="border border-gray-600 rounded-lg px-3 py-1 text-sm text-white bg-gray-800"
+            >
+              {stocks.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* 時間軸ボタン */}
@@ -289,39 +352,52 @@ export default function StockSim() {
           ))}
         </div>
 
-        <CandlestickChart data={chartData} name={selectedStock.name} labelFn={tf.labelFn} />
+        {chartData.length > 0 && (
+          <CandlestickChart data={chartData} name={selectedStock.name} labelFn={tf.labelFn} />
+        )}
 
         <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"#22c55e"}}></span><span className="text-xs text-gray-400">陽線（上昇）</span></div>
-          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"#ef4444"}}></span><span className="text-xs text-gray-400">陰線（下落）</span></div>
+          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block bg-green-500"></span><span className="text-xs text-gray-400">陽線（上昇）</span></div>
+          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block bg-red-500"></span><span className="text-xs text-gray-400">陰線（下落）</span></div>
+          {timeFrame === "1m" && <span className="text-xs text-gray-500 ml-auto">3秒ごとに自動更新</span>}
         </div>
       </div>
 
       {message && <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded-xl mb-4">{message}</div>}
 
       <div className="grid grid-cols-1 gap-4">
-        {stocks.map((stock) => (
-          <div key={stock.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-900">{stock.name}</p>
-              <p className="text-xs text-gray-400">{stock.id}</p>
+        {stocks.map((stock) => {
+          const held = holdings[stock.id] || 0;
+          const buyPrice = buyPrices[stock.id];
+          const isProfit = held > 0 && buyPrice && stock.price > buyPrice;
+          return (
+            <div key={stock.id} className={`bg-white rounded-2xl p-6 border shadow-sm flex items-center justify-between transition-all ${isProfit ? "border-green-300 bg-green-50" : "border-gray-100"}`}>
+              <div>
+                <p className="font-semibold text-gray-900">{stock.name}</p>
+                <p className="text-xs text-gray-400">{stock.id}</p>
+                {isProfit && (
+                  <p className="text-xs text-green-600 font-bold mt-1">
+                    💰 売りどき！+¥{((stock.price - buyPrice) * held).toLocaleString()}の含み益
+                  </p>
+                )}
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-900">¥{stock.price.toLocaleString()}</p>
+                <p className={"text-xs font-medium " + (stock.change >= 0 ? "text-green-600" : "text-red-500")}>
+                  {stock.change >= 0 ? "+" : ""}{stock.change}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-400 mb-1">保有数</p>
+                <p className="font-bold text-gray-900">{held}株</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => buy(stock)} className="bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">買う</button>
+                <button onClick={() => sell(stock)} className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${isProfit ? "bg-green-500 text-white hover:bg-green-600 animate-pulse" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>売る</button>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="font-bold text-gray-900">¥{stock.price.toLocaleString()}</p>
-              <p className={"text-xs font-medium " + (stock.change >= 0 ? "text-green-600" : "text-red-500")}>
-                {stock.change >= 0 ? "+" : ""}{stock.change}%
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-gray-400 mb-1">保有数</p>
-              <p className="font-bold text-gray-900">{holdings[stock.id] || 0}株</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => buy(stock)} className="bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">買う</button>
-              <button onClick={() => sell(stock)} className="bg-gray-100 text-gray-700 px-5 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">売る</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
