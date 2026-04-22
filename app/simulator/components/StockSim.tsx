@@ -1,85 +1,78 @@
 "use client";
 import { useState } from "react";
 
-const stocks = [
-  { id: "7203", name: "トヨタ自動車", price: 3200, change: 1.2, history: [
-    { open: 2780, close: 2850, high: 2900, low: 2750 },
-    { open: 2850, close: 2800, high: 2880, low: 2770 },
-    { open: 2800, close: 2950, high: 2980, low: 2790 },
-    { open: 2950, close: 2900, high: 2970, low: 2870 },
-    { open: 2900, close: 3050, high: 3100, low: 2880 },
-    { open: 3050, close: 2980, high: 3080, low: 2950 },
-    { open: 2980, close: 3150, high: 3200, low: 2960 },
-    { open: 3150, close: 3200, high: 3250, low: 3100 },
-  ]},
-  { id: "6758", name: "ソニーグループ", price: 12800, change: -0.8, history: [
-    { open: 13300, close: 13100, high: 13400, low: 13050 },
-    { open: 13100, close: 13200, high: 13250, low: 13000 },
-    { open: 13200, close: 12950, high: 13220, low: 12900 },
-    { open: 12950, close: 13100, high: 13150, low: 12900 },
-    { open: 13100, close: 12750, high: 13120, low: 12700 },
-    { open: 12750, close: 12650, high: 12800, low: 12600 },
-    { open: 12650, close: 12820, high: 12850, low: 12620 },
-    { open: 12820, close: 12800, high: 12870, low: 12750 },
-  ]},
-  { id: "9984", name: "ソフトバンクG", price: 7400, change: 2.1, history: [
-    { open: 6780, close: 6900, high: 6950, low: 6750 },
-    { open: 6900, close: 6850, high: 6930, low: 6820 },
-    { open: 6850, close: 7050, high: 7100, low: 6830 },
-    { open: 7050, close: 7150, high: 7200, low: 7020 },
-    { open: 7150, close: 7050, high: 7180, low: 7000 },
-    { open: 7050, close: 7250, high: 7300, low: 7030 },
-    { open: 7250, close: 7350, high: 7400, low: 7220 },
-    { open: 7350, close: 7400, high: 7450, low: 7320 },
-  ]},
-  { id: "6861", name: "キーエンス", price: 65000, change: 0.5, history: [
-    { open: 61500, close: 62500, high: 63000, low: 61200 },
-    { open: 62500, close: 62000, high: 62800, low: 61800 },
-    { open: 62000, close: 63500, high: 64000, low: 61900 },
-    { open: 63500, close: 63000, high: 63800, low: 62800 },
-    { open: 63000, close: 64200, high: 64500, low: 62900 },
-    { open: 64200, close: 64600, high: 64900, low: 64000 },
-    { open: 64600, close: 64900, high: 65200, low: 64400 },
-    { open: 64900, close: 65000, high: 65300, low: 64800 },
-  ]},
-  { id: "AAPL", name: "Apple", price: 21500, change: 0.9, history: [
-    { open: 19800, close: 20200, high: 20400, low: 19700 },
-    { open: 20200, close: 20100, high: 20350, low: 20000 },
-    { open: 20100, close: 20800, high: 21000, low: 20050 },
-    { open: 20800, close: 20600, high: 20900, low: 20500 },
-    { open: 20600, close: 21100, high: 21200, low: 20550 },
-    { open: 21100, close: 21300, high: 21400, low: 21000 },
-    { open: 21300, close: 21200, high: 21450, low: 21100 },
-    { open: 21200, close: 21500, high: 21600, low: 21150 },
-  ]},
-  { id: "NVDA", name: "NVIDIA", price: 98000, change: 3.2, history: [
-    { open: 84000, close: 87000, high: 88000, low: 83500 },
-    { open: 87000, close: 86000, high: 87500, low: 85500 },
-    { open: 86000, close: 89500, high: 90000, low: 85800 },
-    { open: 89500, close: 91500, high: 92000, low: 89200 },
-    { open: 91500, close: 93500, high: 94000, low: 91200 },
-    { open: 93500, close: 94500, high: 95000, low: 93200 },
-    { open: 94500, close: 96500, high: 97000, low: 94200 },
-    { open: 96500, close: 98000, high: 98500, low: 96200 },
-  ]},
-  { id: "MSFT", name: "Microsoft", price: 45000, change: -0.4, history: [
-    { open: 43800, close: 44500, high: 44800, low: 43600 },
-    { open: 44500, close: 44200, high: 44700, low: 44000 },
-    { open: 44200, close: 45200, high: 45500, low: 44100 },
-    { open: 45200, close: 45000, high: 45400, low: 44900 },
-    { open: 45000, close: 45600, high: 45800, low: 44950 },
-    { open: 45600, close: 45200, high: 45700, low: 45100 },
-    { open: 45200, close: 45400, high: 45600, low: 45100 },
-    { open: 45400, close: 45000, high: 45500, low: 44900 },
-  ]},
+type Candle = { open: number; close: number; high: number; low: number };
+
+const BASE_PRICE: Record<string, number> = {
+  "7203": 3200, "6758": 12800, "9984": 7400,
+  "6861": 65000, "AAPL": 21500, "NVDA": 98000, "MSFT": 45000,
+};
+
+function generateCandles(base: number, count: number, volatility: number): Candle[] {
+  const candles: Candle[] = [];
+  let price = base * (0.88 + Math.random() * 0.04);
+  for (let i = 0; i < count; i++) {
+    const open = price;
+    const change = (Math.random() - 0.48) * volatility;
+    const close = Math.max(open + change, open * 0.9);
+    const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.3 / base);
+    const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.3 / base);
+    candles.push({
+      open: Math.round(open),
+      close: Math.round(close),
+      high: Math.round(high),
+      low: Math.round(low),
+    });
+    price = close;
+  }
+  return candles;
+}
+
+type TimeFrame = "15m" | "1d" | "1w";
+
+const TIME_FRAMES: { id: TimeFrame; label: string; count: number; volatility: number; labelFn: (i: number, count: number) => string }[] = [
+  {
+    id: "15m", label: "15分足", count: 16, volatility: 0.008,
+    labelFn: (i, count) => {
+      const labels = ["9:00","9:15","9:30","9:45","10:00","10:15","10:30","10:45","11:00","11:15","11:30","12:30","12:45","13:00","13:15","13:30"];
+      return labels[i] || "";
+    },
+  },
+  {
+    id: "1d", label: "日足", count: 20, volatility: 0.025,
+    labelFn: (i, count) => {
+      if (i === 0) return "20日前";
+      if (i === count - 1) return "今日";
+      if (i % 5 === 0) return `${count - 1 - i}日前`;
+      return "";
+    },
+  },
+  {
+    id: "1w", label: "週足", count: 12, volatility: 0.06,
+    labelFn: (i, count) => {
+      if (i === 0) return "12週前";
+      if (i === count - 1) return "今週";
+      if (i % 3 === 0) return `${count - 1 - i}週前`;
+      return "";
+    },
+  },
 ];
 
-const LABELS = ["8週前","7週前","6週前","5週前","4週前","3週前","2週前","今週"];
+const stocks = [
+  { id: "7203", name: "トヨタ自動車", price: 3200, change: 1.2 },
+  { id: "6758", name: "ソニーグループ", price: 12800, change: -0.8 },
+  { id: "9984", name: "ソフトバンクG", price: 7400, change: 2.1 },
+  { id: "6861", name: "キーエンス", price: 65000, change: 0.5 },
+  { id: "AAPL", name: "Apple", price: 21500, change: 0.9 },
+  { id: "NVDA", name: "NVIDIA", price: 98000, change: 3.2 },
+  { id: "MSFT", name: "Microsoft", price: 45000, change: -0.4 },
+];
+
 const W = 640;
 const H = 280;
 const PAD = { top: 20, right: 20, bottom: 30, left: 70 };
 
-function CandlestickChart({ data, name }: { data: typeof stocks[0]["history"]; name: string }) {
+function CandlestickChart({ data, name, labelFn }: { data: Candle[]; name: string; labelFn: (i: number, count: number) => string }) {
   const allValues = data.flatMap((d) => [d.high, d.low]);
   const minVal = Math.min(...allValues);
   const maxVal = Math.max(...allValues);
@@ -87,7 +80,7 @@ function CandlestickChart({ data, name }: { data: typeof stocks[0]["history"]; n
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
   const toY = (v: number) => PAD.top + chartH - ((v - minVal) / range) * chartH;
-  const candleW = Math.floor(chartW / data.length) - 6;
+  const candleW = Math.max(Math.floor(chartW / data.length) - 3, 3);
   const spacing = chartW / data.length;
   const yTicks = 5;
   const tickValues = Array.from({ length: yTicks }, (_, i) =>
@@ -118,9 +111,13 @@ function CandlestickChart({ data, name }: { data: typeof stocks[0]["history"]; n
           </g>
         );
       })}
-      {LABELS.map((label, i) => (
-        <text key={i} x={PAD.left + spacing * i + spacing / 2} y={H - 8} textAnchor="middle" fill="#6B7280" fontSize="10">{label}</text>
-      ))}
+      {data.map((_, i) => {
+        const label = labelFn(i, data.length);
+        if (!label) return null;
+        return (
+          <text key={i} x={PAD.left + spacing * i + spacing / 2} y={H - 8} textAnchor="middle" fill="#6B7280" fontSize="10">{label}</text>
+        );
+      })}
       <text x={PAD.left} y={14} fill="#E5E7EB" fontSize="11" fontWeight="bold">{name}</text>
     </svg>
   );
@@ -134,10 +131,7 @@ function HowToReadChart({ onClose }: { onClose: () => void }) {
           <h3 className="text-lg font-bold text-gray-900">📊 ローソク足チャートの見方</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
         </div>
-
-        {/* ローソク足の図解 */}
         <div className="bg-gray-900 rounded-2xl p-4 mb-5 flex justify-center gap-12">
-          {/* 陽線 */}
           <div className="flex flex-col items-center gap-1">
             <svg width="60" height="120" viewBox="0 0 60 120">
               <line x1="30" y1="5" x2="30" y2="25" stroke="#22c55e" strokeWidth="2"/>
@@ -151,7 +145,6 @@ function HowToReadChart({ onClose }: { onClose: () => void }) {
             <span className="text-green-500 text-sm font-bold">陽線（上昇）</span>
             <span className="text-gray-500 text-xs">終値 ＞ 始値</span>
           </div>
-          {/* 陰線 */}
           <div className="flex flex-col items-center gap-1">
             <svg width="60" height="120" viewBox="0 0 60 120">
               <line x1="30" y1="5" x2="30" y2="25" stroke="#ef4444" strokeWidth="2"/>
@@ -166,43 +159,37 @@ function HowToReadChart({ onClose }: { onClose: () => void }) {
             <span className="text-gray-500 text-xs">終値 ＜ 始値</span>
           </div>
         </div>
-
-        {/* 説明リスト */}
         <div className="space-y-3 mb-5">
           <div className="flex gap-3 items-start bg-gray-50 rounded-xl p-3">
             <span className="text-lg">📌</span>
             <div>
               <p className="text-sm font-bold text-gray-900">ローソク足とは？</p>
-              <p className="text-xs text-gray-600 mt-0.5">1本のローソクで「始値・高値・安値・終値」の4つの価格を表します。株の動きを一目で把握できます。</p>
+              <p className="text-xs text-gray-600 mt-0.5">1本のローソクで「始値・高値・安値・終値」の4つの価格を表します。</p>
             </div>
           </div>
           <div className="flex gap-3 items-start bg-green-50 rounded-xl p-3">
             <span className="text-lg">🟩</span>
             <div>
               <p className="text-sm font-bold text-gray-900">緑（陽線）＝上昇した</p>
-              <p className="text-xs text-gray-600 mt-0.5">その週の終わりの価格が、始まりより高かった＝株価が上がった週です。</p>
+              <p className="text-xs text-gray-600 mt-0.5">終わりの価格が始まりより高かった＝株価が上がった期間です。</p>
             </div>
           </div>
           <div className="flex gap-3 items-start bg-red-50 rounded-xl p-3">
             <span className="text-lg">🟥</span>
             <div>
               <p className="text-sm font-bold text-gray-900">赤（陰線）＝下落した</p>
-              <p className="text-xs text-gray-600 mt-0.5">その週の終わりの価格が、始まりより低かった＝株価が下がった週です。</p>
+              <p className="text-xs text-gray-600 mt-0.5">終わりの価格が始まりより低かった＝株価が下がった期間です。</p>
             </div>
           </div>
-          <div className="flex gap-3 items-start bg-gray-50 rounded-xl p-3">
-            <span className="text-lg">📏</span>
+          <div className="flex gap-3 items-start bg-blue-50 rounded-xl p-3">
+            <span className="text-lg">⏱️</span>
             <div>
-              <p className="text-sm font-bold text-gray-900">ヒゲ（上下の細い線）</p>
-              <p className="text-xs text-gray-600 mt-0.5">上のヒゲ＝その週の最高値、下のヒゲ＝その週の最安値を表しています。</p>
+              <p className="text-sm font-bold text-gray-900">時間軸について</p>
+              <p className="text-xs text-gray-600 mt-0.5">15分足＝15分ごと、日足＝1日ごと、週足＝1週間ごとの値動きを表します。</p>
             </div>
           </div>
         </div>
-
-        <button
-          onClick={onClose}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-        >
+        <button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors">
           わかった！チャートを見る
         </button>
       </div>
@@ -214,8 +201,13 @@ export default function StockSim() {
   const [cash, setCash] = useState(1000000);
   const [holdings, setHoldings] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState("");
-  const [selectedChart, setSelectedChart] = useState(stocks[0]);
+  const [selectedStockId, setSelectedStockId] = useState(stocks[0].id);
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>("1d");
   const [showGuide, setShowGuide] = useState(false);
+
+  const selectedStock = stocks.find((s) => s.id === selectedStockId) || stocks[0];
+  const tf = TIME_FRAMES.find((t) => t.id === timeFrame)!;
+  const chartData = generateCandles(BASE_PRICE[selectedStockId], tf.count, tf.volatility * BASE_PRICE[selectedStockId]);
 
   const buy = (stock: typeof stocks[0]) => {
     if (cash < stock.price) { setMessage("資金が足りません。"); return; }
@@ -260,7 +252,8 @@ export default function StockSim() {
       </div>
 
       <div className="rounded-2xl p-6 border border-gray-800 shadow-sm mb-8" style={{background:"#111827"}}>
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        {/* チャートヘッダー */}
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-white">株価チャート</h2>
             <button
@@ -271,14 +264,33 @@ export default function StockSim() {
             </button>
           </div>
           <select
-            value={selectedChart.id}
-            onChange={(e) => setSelectedChart(stocks.find((s) => s.id === e.target.value) || stocks[0])}
+            value={selectedStockId}
+            onChange={(e) => setSelectedStockId(e.target.value)}
             className="border border-gray-600 rounded-lg px-3 py-1 text-sm text-white bg-gray-800"
           >
             {stocks.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
-        <CandlestickChart data={selectedChart.history} name={selectedChart.name} />
+
+        {/* 時間軸ボタン */}
+        <div className="flex gap-2 mb-4">
+          {TIME_FRAMES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTimeFrame(t.id)}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                timeFrame === t.id
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <CandlestickChart data={chartData} name={selectedStock.name} labelFn={tf.labelFn} />
+
         <div className="flex items-center gap-4 mt-3">
           <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"#22c55e"}}></span><span className="text-xs text-gray-400">陽線（上昇）</span></div>
           <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm inline-block" style={{background:"#ef4444"}}></span><span className="text-xs text-gray-400">陰線（下落）</span></div>
